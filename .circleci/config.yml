@@ -1,0 +1,53 @@
+version: 2
+
+jobs:
+  hi:
+    docker:
+      - image: ubuntu:latest
+
+    steps:
+      - checkout
+      - run: apt-get update && apt-get install -y ca-certificates
+      - run: echo "hi" >> hi.txt
+      - run: mkdir dir1/; touch dir1/somefile.txt
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./*.txt
+            - dir1/
+  
+  bye:
+    docker:
+      - image: centos:latest
+
+    steps:
+      - checkout
+      - run: sleep 20; echo "bye" >> bye.txt
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./*.txt
+
+  downstream:
+    docker:
+      - image: circleci/golang:latest
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: ls -lahR
+      - run: cat hi.txt
+
+workflows:
+  version: 2
+  upstream_downstream:
+    jobs:
+      - hi
+      - bye
+      - downstream:
+          requires:
+            - hi
+            - bye
